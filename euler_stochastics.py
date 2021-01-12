@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 
-# %% Functions
+
 c_theta = 0.7
 
 c_mu    = 1.5
@@ -128,7 +128,7 @@ for (x_i, e), df in dfs.items():
     axs[i].set_ylabel('x(t)')
     axs[i].set_title(f'epsilon = {e}')
 
-# fig.savefig('D:\code\IIT\Fall 2020\Research with Duan')
+fig.savefig('graph')
 fig
 # %% Polynomial sim attempt 1
 # take runs that only had a certain increase in concentration
@@ -170,8 +170,6 @@ for j, df_u in enumerate(df_u_runs):
     # approximate solution (polynomial-fitted)
     axs[0].plot(ts, fxs, label='f, sigma', linewidth=2.5, color='k')
 
-# check if rational function matches the
-fig
 # %% polynomial attempt 2
 def poly_fit(df, x_i=0, f_deg=2, s_deg=0, avg=None):
     if not avg:
@@ -238,7 +236,7 @@ with np.errstate(all='raise'):
                 sns.lineplot(x=ts, y=data, color='gray', ax=axs[1], linewidth=0.75)
             except:
                 print(x0)
-
+fig
 # %% creating the most probable transition pathway
 capped_mask = x_u_runs[(x_u_runs > x_is['xu']) & (x_u_runs < x_is['x+'] + 0.5)].any(0)
 
@@ -282,7 +280,7 @@ min_G = min(successes['G'])
 midx = successes['G'].index(min_G)
 min_v0 = successes['v0'][midx]
 min_xi = min_v0*dt + initial
-print(mi, min_v0, min_xi)
+print(min_G, min_v0, min_xi)
 # axs[1].lines
 fig
 
