@@ -2,9 +2,9 @@
 
 Implementing Euler's method to Stochastic Differential Equations.
 
-![alt text](https://github.com/StanleyN1/stochastic-modeling/blob/main/pics/f and U.png?raw=True)
+![alt text](https://github.com/StanleyN1/stochastic-modeling/blob/main/pics/actualfunc.png?raw=True)
 
-![alt text](https://github.com/StanleyN1/stochastic-modeling/blob/main/pics/poly_fit.png)
+![alt text](https://github.com/StanleyN1/stochastic-modeling/blob/main/pics/simulated.png)
 
 References:
 

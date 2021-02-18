@@ -37,11 +37,7 @@ def run_euler(x0, dt, N, f, sigma):
 num_of_runs = 3
 N = 500
 t_0, t_f = 0, 20
-# n_k = 100 # number of time steps to consider inbetween
 split = 100 # number of split time intervals
-
-dt_k = (t_f - t_0) / (N / n_k)
-print(f'time interval: {(t_f - t_0) / (N / n_k)}')
 dt = (t_f - t_0) / N
 ts = np.linspace(t_0, t_f, num=N + 1)
 
@@ -51,11 +47,19 @@ xs = np.linspace(0, 6, num=N_x + 1)
 
 fss = np.zeros((len(xs), num_of_runs, N + 1))
 
+cmap = plt.get_cmap('rainbow')
+
 for i, xi in tqdm(enumerate(xs)): # loop through initial values
     for n in range(num_of_runs): # num for each initial value
         run = run_euler(xi, dt, N, f, sigma)
         fss[i][n] = run
-        plt.plot(ts, run)
+        plt.plot(ts, run, c=cmap(xi / max(xs)))
+
+plt.xlabel('t')
+plt.ylabel('x')
+plt.title('simulated data')
+
+plt.savefig('pics/simulated.png')
 
 # %%
 import scipy.integrate as integrate
@@ -69,9 +73,14 @@ def F(f, x):
 
 plt.plot(xs, f(xs), label='f')
 plt.plot(xs, -F(f, xs), label='U')
-# for xiname, xi in x_is.items():
-#     plt.axvline(xi, label=xiname)
-plt.legend()
+for xiname, xi in x_is.items(): # relevant stable and unstable points
+    rgb = np.random.rand(3,)
+    plt.axvline(xi, label=xiname, c=rgb)
+
+plt.legend(loc='best')
+plt.xlabel('x')
+plt.title('drift and diffusion')
+# plt.savefig('pics/actualfunc.png')
 
 # %%
 def kramers_moyal(xs, fss, intervals=(0, 1)):
