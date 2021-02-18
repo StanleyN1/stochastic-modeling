@@ -14,8 +14,8 @@ def f(x, t=None):
     Kd = 10
     kd = 1
     R_bas = 0.4
-    # return (kf * x ** 2) / (x ** 2 + Kd) - kd*x + R_bas
-    return 4*x - x ** 3
+    return (kf * x ** 2) / (x ** 2 + Kd) - kd*x + R_bas # biological model
+    # return x ** 3 - 4*x # simple test case
 
 def sigma(x):
     '''diffusion function'''
@@ -34,11 +34,11 @@ def run_euler(x0, dt, N, f, sigma):
         fs[i] = euler(fs[i - 1], dt, a=f, b=sigma)
     return fs
 # %%
-num_of_runs = 1
+num_of_runs = 3
 N = 500
-t_0, t_f = 0, 2
-n_k = 50 # number of runs to consider inbetween
-split = N // n_k
+t_0, t_f = 0, 20
+# n_k = 100 # number of time steps to consider inbetween
+split = 100 # number of split time intervals
 
 dt_k = (t_f - t_0) / (N / n_k)
 print(f'time interval: {(t_f - t_0) / (N / n_k)}')
@@ -46,8 +46,8 @@ dt = (t_f - t_0) / N
 ts = np.linspace(t_0, t_f, num=N + 1)
 
 x_is = {'x+': 4.28343, 'x-': 0.62685, 'xu': 1.48971}
-N_x = 150
-xs = np.linspace(-1, 1, num=N_x + 1)
+N_x = 100
+xs = np.linspace(0, 6, num=N_x + 1)
 
 fss = np.zeros((len(xs), num_of_runs, N + 1))
 
@@ -60,7 +60,7 @@ for i, xi in tqdm(enumerate(xs)): # loop through initial values
 # %%
 import scipy.integrate as integrate
 
-def F(x):
+def F(f, x):
     res = np.zeros_like(x)
     for i, val in enumerate(x):
         y, err = integrate.quad(f, 0, val)
@@ -68,7 +68,7 @@ def F(x):
     return res
 
 plt.plot(xs, f(xs), label='f')
-plt.plot(xs, -F(xs), label='U')
+plt.plot(xs, -F(f, xs), label='U')
 # for xiname, xi in x_is.items():
 #     plt.axvline(xi, label=xiname)
 plt.legend()
@@ -77,12 +77,10 @@ plt.legend()
 def kramers_moyal(xs, fss, intervals=(0, 1)):
     '''implements eq(2) and eq (3) of Dai et al
     approximates well when only considering first time steps'''
-
     # range defined as time intervals to consider
 
     f_approx = np.zeros_like(xs)
     s_approx = np.zeros_like(xs)
-
     fs = fss.mean(1) # mean over the runs at each x_i
     diffs = np.zeros((len(xs), split))
     for i in range(len(xs)):
@@ -98,7 +96,7 @@ def kramers_moyal(xs, fss, intervals=(0, 1)):
 # %% best approximation of $f$ and $\sigma$.
 data = kramers_moyal(xs, fss, (0, 1))
 plt.plot(xs, f(xs), label='f') # exact drift function
-plt.plot(xs, -F(xs), label='U') # exact potential of drift
+plt.plot(xs, -F(f, xs), label='U') # exact potential of drift
 plt.plot(xs, data['f'], label='f approx') # approximate drift
 plt.plot(xs, data['s'], label='s approx') # approximate diffusion
 plt.legend()
@@ -106,8 +104,18 @@ plt.legend()
 # %% experiment when consider more intervals than first slice
 
 plt.plot(xs, f(xs), label='f')
-for i in range(1, split, 3):
+for i in range(1, split, 5):
     data = kramers_moyal(xs, fss, (0, i))
     plt.plot(xs, data['f'], label=f'f approx from (0, {i})')
     # plt.plot(xs, data['s'], label='s approx')
-    plt.legend()
+plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+
+# %% polynomial interpolation
+best_approx = kramers_moyal(xs, fss, (0, 1))
+best_poly = np.poly1d(np.polyfit(xs, best_approx['f'], deg=3))
+plt.plot(xs, np.polyval(best_poly, xs), label='f poly')
+plt.plot(xs, f(xs), label='f')
+plt.plot(xs, -F(f, xs), label='F poly')
+plt.plot(xs, -F(best_poly, xs), label='F')
+
+plt.legend()
