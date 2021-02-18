@@ -86,7 +86,7 @@ plt.title('drift and diffusion')
 def kramers_moyal(xs, fss, intervals=(0, 1)):
     '''implements eq(2) and eq (3) of Dai et al
     approximates well when only considering first time steps'''
-    # range defined as time intervals to consider
+    # intervals defined as time intervals to consider
 
     f_approx = np.zeros_like(xs)
     s_approx = np.zeros_like(xs)
@@ -119,7 +119,7 @@ for i in range(1, split, 5):
     # plt.plot(xs, data['s'], label='s approx')
 plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
 
-# %% polynomial interpolation
+# %% polynomial interpolation and approximated data
 best_approx = kramers_moyal(xs, fss, (0, 1))
 best_poly = np.poly1d(np.polyfit(xs, best_approx['f'], deg=3))
 plt.plot(xs, np.polyval(best_poly, xs), label='f poly')
@@ -127,4 +127,11 @@ plt.plot(xs, f(xs), label='f')
 plt.plot(xs, -F(f, xs), label='F poly')
 plt.plot(xs, -F(best_poly, xs), label='F')
 
+plt.plot(xs, best_approx['f'], label='f approx') # approximate drift
+plt.plot(xs, best_approx['s'], label='s approx')
+
+plt.xlabel('x')
+plt.title('approximation and interpolation')
 plt.legend()
+
+plt.savefig('pics/approxpoly.png')
