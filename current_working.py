@@ -15,7 +15,7 @@ def f(x, t=None):
     kd = 1
     R_bas = 0.4
     return (kf * x ** 2) / (x ** 2 + Kd) - kd*x + R_bas # biological model
-    # return x ** 3 - 4*x # simple test case
+    # return 4*x - x ** 3 # simple test case
 
 def sigma(x):
     '''diffusion function'''
@@ -26,7 +26,7 @@ def euler(x, dt, a, b, t=None):
     # if b = 0 then we have ordinary ODE
     return x + a(x)*dt + b(x)*dW(dt)
 
-def run_euler(x0, dt, N, f, sigma):
+def run_euler(x0, dt, N, f, sigma = lambda x: 0):
     '''simulate the ode $dX_t = f(X_dt, t)dt + sigma(X_dt, t)dW_t$'''
     fs = np.zeros(N + 1)
     fs[0] = x0
@@ -34,10 +34,12 @@ def run_euler(x0, dt, N, f, sigma):
         fs[i] = euler(fs[i - 1], dt, a=f, b=sigma)
     return fs
 # %%
-num_of_runs = 3
-N = 500
-t_0, t_f = 0, 20
-split = 100 # number of split time intervals
+num_of_runs = 2
+N = 1000
+t_0, t_f = 0, 50
+
+n_k = 10
+split = N // n_k # number of split time intervals
 dt = (t_f - t_0) / N
 ts = np.linspace(t_0, t_f, num=N + 1)
 
@@ -58,8 +60,7 @@ for i, xi in tqdm(enumerate(xs)): # loop through initial values
 plt.xlabel('t')
 plt.ylabel('x')
 plt.title('simulated data')
-
-plt.savefig('pics/simulated.png')
+# plt.savefig('pics/simulated.png')
 
 # %%
 import scipy.integrate as integrate
@@ -73,9 +74,9 @@ def F(f, x):
 
 plt.plot(xs, f(xs), label='f')
 plt.plot(xs, -F(f, xs), label='U')
-for xiname, xi in x_is.items(): # relevant stable and unstable points
-    rgb = np.random.rand(3,)
-    plt.axvline(xi, label=xiname, c=rgb)
+# for xiname, xi in x_is.items(): # relevant stable and unstable points
+#     rgb = np.random.rand(3,)
+#     plt.axvline(xi, label=xiname, c=rgb)
 
 plt.legend(loc='best')
 plt.xlabel('x')
@@ -120,18 +121,65 @@ for i in range(1, split, 5):
 plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
 
 # %% polynomial interpolation and approximated data
-best_approx = kramers_moyal(xs, fss, (0, 1))
-best_poly = np.poly1d(np.polyfit(xs, best_approx['f'], deg=3))
-plt.plot(xs, np.polyval(best_poly, xs), label='f poly')
+approx = kramers_moyal(xs, fss, (0, 1)) # most accurate data
+polyf = np.poly1d(np.polyfit(xs, approx['f'], deg=3))
+polys = np.poly1d(np.polyfit(xs, approx['s'], deg=0))
+plt.plot(xs, np.polyval(polyf, xs), label='f poly')
 plt.plot(xs, f(xs), label='f')
 plt.plot(xs, -F(f, xs), label='F poly')
-plt.plot(xs, -F(best_poly, xs), label='F')
+plt.plot(xs, -F(polyf, xs), label='F')
 
-plt.plot(xs, best_approx['f'], label='f approx') # approximate drift
-plt.plot(xs, best_approx['s'], label='s approx')
+plt.plot(xs, approx['f'], label='f approx') # approximate drift
+plt.plot(xs, approx['s'], label='s approx')
 
 plt.xlabel('x')
 plt.title('approximation and interpolation')
 plt.legend()
+# plt.savefig('pics/approxpoly.png')
 
-plt.savefig('pics/approxpoly.png')
+# %% shooting method
+
+# Cheng et al. eq (7) gives formula for most probable transition pathway
+
+zm = (polys ** 2 / 2) * np.polyder(polyf, m=2) + np.polyder(polyf, m=1)*polyf
+
+for i, xi in tqdm(enumerate(xs)):
+    plt.plot(ts, fss[i].mean(0), color='black')
+
+
+initial = 0
+target = x_is['x+']
+success = {'vi': [], 'loss': [], 'xi': []}
+
+vs = np.linspace(-1, 1, 51)
+xs_skip = xs[::]
+zss = np.zeros((len(xs_skip), len(vs), N + 1))
+vss = np.zeros_like(zss)
+with np.errstate(all='raise'):
+    for i, xi in tqdm(enumerate(xs_skip)):
+        initial = xi
+        for j, vi in enumerate(vs):
+            try: # catches overflows
+                vss[i][j][0] = vi
+                zss[i][j][0] = xi
+                for k in range(1, N + 1): # shooting with initial veloctiy
+                    vss[i][j][k] = vss[i][j][k - 1] + zm(zss[i][j][k - 1])*dt
+                    zss[i][j][k] = zss[i][j][k - 1] + vss[i][j][k - 1]*dt
+                    if max(xs) < zss[i][j][k] < min(xs):
+                        raise ValueError # still outside of our bounds
+                plt.plot(ts, zss[i][j], color=cmap(xi / max(xs_skip)), linewidth=1)
+            except:
+                # when overflow occurs
+                # reset data to zero, i.e., all zeros in a row means bad data
+                vss[i][j] = np.zeros(zss.shape[-1])
+                zss[i][j] = np.zeros(zss.shape[-1])
+
+plt.xlabel('t')
+plt.ylabel('x')
+plt.title('most probable pathway')
+
+# np.save('data/bio_fss.npy', fss)
+# np.save('data/bio_zss.npy', zss)
+# np.save('data/bio_vss.npy', vss)
+# plt.savefig('pics/simple z')
+# plt.savefig('pics/bio_shooting.png')
