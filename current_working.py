@@ -34,7 +34,7 @@ def run_euler(x0, dt, N, f, sigma = lambda x: 0):
         fs[i] = euler(fs[i - 1], dt, a=f, b=sigma)
     return fs
 # %%
-num_of_runs = 2
+num_of_runs = 10
 N = 1000
 t_0, t_f = 0, 50
 
@@ -135,7 +135,7 @@ plt.plot(xs, approx['s'], label='s approx')
 plt.xlabel('x')
 plt.title('approximation and interpolation')
 plt.legend()
-# plt.savefig('pics/approxpoly.png')
+plt.savefig('pics/learned_f(x).pdf', figsize=(7, 5))
 
 # %% shooting method
 
@@ -147,25 +147,23 @@ for i, xi in tqdm(enumerate(xs)):
     plt.plot(ts, fss[i].mean(0), color='black')
 
 
-initial = 0
 target = x_is['x+']
-success = {'vi': [], 'loss': [], 'xi': []}
 
-vs = np.linspace(-1, 1, 51)
-xs_skip = xs[::]
+vs = np.linspace(-0.5, 0.5, 1001)
+xs_skip = [x_is['xu']] # xs[::]
 zss = np.zeros((len(xs_skip), len(vs), N + 1))
 vss = np.zeros_like(zss)
 with np.errstate(all='raise'):
-    for i, xi in tqdm(enumerate(xs_skip)):
+    for i, xi in enumerate(xs_skip):
         initial = xi
-        for j, vi in enumerate(vs):
+        for j, vi in tqdm(enumerate(vs)):
             try: # catches overflows
                 vss[i][j][0] = vi
                 zss[i][j][0] = xi
                 for k in range(1, N + 1): # shooting with initial veloctiy
                     vss[i][j][k] = vss[i][j][k - 1] + zm(zss[i][j][k - 1])*dt
                     zss[i][j][k] = zss[i][j][k - 1] + vss[i][j][k - 1]*dt
-                    if max(xs) < zss[i][j][k] < min(xs):
+                    if max(xs) < zss[i][j][k] or zss[i][j][k] < min(xs):
                         raise ValueError # still outside of our bounds
                 plt.plot(ts, zss[i][j], color=cmap(xi / max(xs_skip)), linewidth=1)
             except:
@@ -174,12 +172,108 @@ with np.errstate(all='raise'):
                 vss[i][j] = np.zeros(zss.shape[-1])
                 zss[i][j] = np.zeros(zss.shape[-1])
 
+# np.where(a.any(2)) gives indicies for when it is non 0
+
+# np.where(zss.any(2))
+# vss[0][76]
+
 plt.xlabel('t')
 plt.ylabel('x')
 plt.title('most probable pathway')
-
-# np.save('data/bio_fss.npy', fss)
-# np.save('data/bio_zss.npy', zss)
-# np.save('data/bio_vss.npy', vss)
+# %%
+np.save('data/bio_fss_xpos.npy', fss)
+np.save('data/bio_zss_xpos.npy', zss)
+np.save('data/bio_vss_xpos.npy', vss)
 # plt.savefig('pics/simple z')
 # plt.savefig('pics/bio_shooting.png')
+# %%
+import seaborn as sns
+
+loadzneg = np.load('data/bio_zss_xneg.npy')
+loadzneg = np.load('data/bio_zss_xneg.npy')
+
+loadvneg = np.load('data/bio_vss_xneg.npy')
+loadvpos = np.load('data/bio_vss_xpos.npy')
+loadf = np.load('data/bio_fss_xneg.npy')
+
+for f in loadf.mean(1):
+    plt.plot(ts, f, color='black')
+
+zneg_idx = np.where(loadzneg.any(2))
+loadvneg[zneg_idx][3, 0]
+
+for i, z in enumerate(loadzneg[zneg_idx]):
+    plt.plot(ts, z, color=cmap(loadvneg[zneg_idx][i, 0] / loadvneg[zneg_idx][:,0].max()))
+
+zpos_idx = np.where(loadzpos.any(2))
+for i, z in enumerate(loadzpos[zpos_idx]):
+    plt.plot(ts, z, color=cmap(loadvpos[zpos_idx][i, 0] / loadvpos[zpos_idx][:,0].min()))
+plt.xlabel('t')
+plt.ylabel('x')
+plt.title('shooting velocities')
+x_is
+# plt.savefig('pics/bio_velocity.png')
+
+# %% investigating velocities and error to target
+loadzneg = np.load('data/bio_zss_xneg.npy')
+loadvneg = np.load('data/bio_vss_xneg.npy')
+target = x_is['x+']
+initial = x_is['x-']
+
+idx = np.where(loadzneg.any(2))
+
+zz = loadzneg[idx]
+vv = loadvneg[idx]
+
+loss = (zz[:,-1] - target) ** 2
+
+# vv[np.where(loss < 1e-2)]
+min_loss = loss.argmin()
+min_v = vv[min_loss]
+
+plt.plot(vv[:, 0], loss, color='orange', label='loss')
+plt.axvline(min_v[0], label=f'min velocity: {min_v[0]}')
+plt.xlabel('velocity')
+plt.ylabel('loss')
+plt.title('loss given target and initial velocity')
+plt.legend()
+# %% final position z and initial velocity
+plt.plot(vv[:, 0], zz[:, -1], color='red', label='loss')
+plt.axvline(min_v[0], label=f'min velocity: {min_v[0]}', color='blue')
+plt.axhline(target, label=f'target: {target}', color='brown')
+plt.xlabel('velocity')
+plt.ylabel('final z')
+plt.title('final position given initial velocity')
+plt.legend()
+# %% plotted specifically wrt min loss
+plt.plot(zz[min_loss], vv[min_loss], color='red', label='min z, v')
+
+plt.xlim((0, 6))
+plt.xlabel('x')
+plt.ylabel('velocity')
+plt.title('position vs velocity')
+plt.legend()
+# %%
+
+for v, z in zip(vv, zz):
+    plt.plot(z, v, color=cmap(v[0]/vv[:,0].max()))
+plt.plot(zz[min_loss], vv[min_loss], color='black', linewidth=2, label='best')
+plt.axvline(initial, color='brown', label=f'initial pos: {initial}')
+plt.xlim((0, 6))
+plt.xlabel('x')
+plt.ylabel('velocity')
+plt.title('position vs velocity')
+plt.legend()
+# %% plotting
+fig, axs = plt.subplots(1, 2, sharey=True, figsize=(18, 8))
+axs[0].plot(vv[min_loss], zz[min_loss], color='black', linewidth=2, label='best')
+axs[0].plot(vv[min_loss], zz[min_loss], color='black', linewidth=2, label='best')
+for f in loadf.mean(1):
+    axs[1].plot(ts, f, color='black')
+
+axs[0].set_xlim('')
+
+axs[0].set_xlabel('v')
+axs[0].set_ylabel('x')
+axs[1].set_xlabel('t')
+axs[1].set_ylabel('x')
