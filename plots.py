@@ -75,6 +75,13 @@ def kramers_moyal(xs, fss, intervals=(0, 1)):
     return {'f': f_approx, 's': s_approx}
 # %%
 data = kramers_moyal(xs, fss, (0, 1))
+polyf = np.poly1d(np.polyfit(xs, data['f'], deg=3))
+polys = np.poly1d(np.polyfit(xs, data['s'], deg=0))
+
+print(polyf)
+print(polys)
+zm = (polys ** 2 / 2) * np.polyder(polyf, m=2) + np.polyder(polyf, m=1)*polyf
+print(zm)
 # %%
 loadzneg = np.load('data/bio_zss_xneg.npy')
 loadvneg = np.load('data/bio_vss_xneg.npy')

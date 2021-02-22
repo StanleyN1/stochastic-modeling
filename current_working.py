@@ -19,7 +19,7 @@ def f(x, t=None):
 
 def sigma(x):
     '''diffusion function'''
-    return 0.1
+    return 0.25
 
 def euler(x, dt, a, b, t=None):
     '''one step of the ODE simulation'''
@@ -35,7 +35,7 @@ def run_euler(x0, dt, N, f, sigma = lambda x: 0):
     return fs
 # %%
 num_of_runs = 10
-N = 1000
+N = 500
 t_0, t_f = 0, 50
 
 n_k = 10
@@ -88,7 +88,6 @@ def kramers_moyal(xs, fss, intervals=(0, 1)):
     '''implements eq(2) and eq (3) of Dai et al.
     approximates well when only considering first time steps'''
     # intervals defined as time intervals to consider
-
     f_approx = np.zeros_like(xs)
     s_approx = np.zeros_like(xs)
     fs = fss.mean(1) # mean over the runs at each x_i
@@ -96,11 +95,10 @@ def kramers_moyal(xs, fss, intervals=(0, 1)):
     for i in range(len(xs)):
 
         # splits data into split number of intervals over time
-        diffs[i] = np.diff(np.split(fs[i][1:], split)).mean(1) # num of eq (2), (3) of Dai et al
-
+        diffs[i] = np.diff(np.split(fs[i][1:], split)).mean(1) # numerator of eq (2), (3) of Dai et al
         diff = diffs[i][intervals[0]:intervals[1]] # most relevant information is first couple of time steps
         f_approx[i] =  diff.mean() / dt # eq (2) of Dai et al
-        s_approx[i] =  diff.mean() ** 2 / dt # eq (3) of Dai et al
+        s_approx[i] =  np.sqrt(abs(diff.mean())) / dt # eq (3) of Dai et al
 
     return {'f': f_approx, 's': s_approx}
 # %% best approximation of $f$ and $\sigma$.
@@ -113,7 +111,7 @@ plt.legend()
 plt.xlabel('x')
 plt.xlabel('f')
 plt.title('f and approximation')
-plt.savefig('pics/paper/f_and_approx.pdf')
+# plt.savefig('pics/paper/f_and_approx.pdf')
 # %% experiment when consider more intervals than first slice
 
 plt.plot(xs, f(xs), label='f')
@@ -124,21 +122,26 @@ for i in range(1, split, 5):
 plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
 
 # %% polynomial interpolation and approximated data
+# fss = np.load('data/bio_fss.npy')
+
 approx = kramers_moyal(xs, fss, (0, 1)) # most accurate data
 polyf = np.poly1d(np.polyfit(xs, approx['f'], deg=3))
-# polys = np.poly1d(np.polyfit(xs, approx['s'], deg=0))
+polys = np.poly1d(np.polyfit(xs, approx['s'], deg=0))
+polys
 plt.plot(xs, np.polyval(polyf, xs), label='f poly')
 plt.plot(xs, f(xs), label='f')
+plt.plot(xs, [sigma(x) for x in xs], label='$\sigma$')
+plt.plot(xs, np.polyval(polys, xs), label=f'$\sigma$: {polys}')
 # plt.plot(xs, -F(f, xs), label='F poly')
 # plt.plot(xs, -F(polyf, xs), label='F')
 
-# plt.plot(xs, approx['f'], label='f approx') # approximate drift
-# plt.plot(xs, approx['s'], label='s approx')
+plt.plot(xs, approx['f'], label='f approx') # approximate drift
+plt.plot(xs, approx['s'], label='s approx')
 
 plt.xlabel('x')
 plt.title('approximation and interpolation')
 plt.legend()
-plt.savefig('pics/f_fpoly(x).pdf', figsize=(7, 5))
+# plt.savefig('pics/s_spoly(x).pdf')
 
 # %% shooting method
 
@@ -152,8 +155,8 @@ for i, xi in tqdm(enumerate(xs)):
 
 target = x_is['x+']
 
-vs = np.linspace(-0.5, 0.5, 1001)
-xs_skip = [x_is['xu']] # xs[::]
+vs = np.linspace(0, 0.5, 1001)
+xs_skip = [x_is['x-']] # xs[::]
 zss = np.zeros((len(xs_skip), len(vs), N + 1))
 vss = np.zeros_like(zss)
 with np.errstate(all='raise'):
@@ -184,38 +187,43 @@ plt.xlabel('t')
 plt.ylabel('x')
 plt.title('most probable pathway')
 # %%
-np.save('data/bio_fss_xpos.npy', fss)
-np.save('data/bio_zss_xpos.npy', zss)
-np.save('data/bio_vss_xpos.npy', vss)
+np.save('data/bio_fss_xneg.npy', fss)
+np.save('data/bio_zss_xneg.npy', zss)
+np.save('data/bio_vss_xneg.npy', vss)
 # plt.savefig('pics/simple z')
 # plt.savefig('pics/bio_shooting.png')
 # %%
 import seaborn as sns
 
 loadzneg = np.load('data/bio_zss_xneg.npy')
-loadzneg = np.load('data/bio_zss_xneg.npy')
+# loadzpos = np.load('data/bio_zss_xpos.npy')
 
 loadvneg = np.load('data/bio_vss_xneg.npy')
-loadvpos = np.load('data/bio_vss_xpos.npy')
+# loadvpos = np.load('data/bio_vss_xpos.npy')
 loadf = np.load('data/bio_fss_xneg.npy')
 
-for f in loadf.mean(1):
-    plt.plot(ts, f, color='black')
+for i, xi in enumerate(xs):
+    for run in range(2):
+        plt.plot(ts, fss[i][run], color='black')
 
+# from x- to x+ shooting method
 zneg_idx = np.where(loadzneg.any(2))
-loadvneg[zneg_idx][3, 0]
-
 for i, z in enumerate(loadzneg[zneg_idx]):
     plt.plot(ts, z, color=cmap(loadvneg[zneg_idx][i, 0] / loadvneg[zneg_idx][:,0].max()))
 
-zpos_idx = np.where(loadzpos.any(2))
-for i, z in enumerate(loadzpos[zpos_idx]):
-    plt.plot(ts, z, color=cmap(loadvpos[zpos_idx][i, 0] / loadvpos[zpos_idx][:,0].min()))
+# from x+ to x- shooting method
+# zpos_idx = np.where(loadzpos.any(2))
+# for i, z in enumerate(loadzpos[zpos_idx]):
+#     plt.plot(ts, z, color=cmap(loadvpos[zpos_idx][i, 0] / loadvpos[zpos_idx][:,0].min()))
+
+# min loss transition pathway
+plt.plot(ts, zz[min_loss], color='purple', label=f'min action path', linewidth=2.75)
+plt.legend()
 plt.xlabel('t')
 plt.ylabel('x')
-plt.title('shooting velocities')
-x_is
-# plt.savefig('pics/bio_velocity.png')
+plt.title('most probable transition pathway')
+
+plt.savefig('pics/paper/bio_min_loss.pdf')
 
 # %% investigating velocities and error to target
 loadzneg = np.load('data/bio_zss_xneg.npy')
@@ -267,3 +275,13 @@ plt.xlabel('x')
 plt.ylabel('velocity')
 plt.title('position vs velocity')
 plt.legend()
+
+# %%
+init = x_is['x-'] + vv[-5:][:, 0].mean()/dt
+init_sims = 1000
+for i in tqdm(range(init_sims)): # num for each initial value
+    run = run_euler(init, dt, N, f, sigma)
+    plt.plot(ts, run)
+
+vv[-5:]
+plt.plot(ts, zz[min_loss], color='purple', label=f'min action path', linewidth=2.75)
