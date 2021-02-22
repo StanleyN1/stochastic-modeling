@@ -85,7 +85,7 @@ plt.title('drift and diffusion')
 
 # %%
 def kramers_moyal(xs, fss, intervals=(0, 1)):
-    '''implements eq(2) and eq (3) of Dai et al
+    '''implements eq(2) and eq (3) of Dai et al.
     approximates well when only considering first time steps'''
     # intervals defined as time intervals to consider
 
@@ -106,11 +106,14 @@ def kramers_moyal(xs, fss, intervals=(0, 1)):
 # %% best approximation of $f$ and $\sigma$.
 data = kramers_moyal(xs, fss, (0, 1))
 plt.plot(xs, f(xs), label='f') # exact drift function
-plt.plot(xs, -F(f, xs), label='U') # exact potential of drift
+# plt.plot(xs, -F(f, xs), label='U') # exact potential of drift
 plt.plot(xs, data['f'], label='f approx') # approximate drift
-plt.plot(xs, data['s'], label='s approx') # approximate diffusion
+# plt.plot(xs, data['s'], label='s approx') # approximate diffusion
 plt.legend()
-
+plt.xlabel('x')
+plt.xlabel('f')
+plt.title('f and approximation')
+plt.savefig('pics/paper/f_and_approx.pdf')
 # %% experiment when consider more intervals than first slice
 
 plt.plot(xs, f(xs), label='f')
@@ -123,19 +126,19 @@ plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
 # %% polynomial interpolation and approximated data
 approx = kramers_moyal(xs, fss, (0, 1)) # most accurate data
 polyf = np.poly1d(np.polyfit(xs, approx['f'], deg=3))
-polys = np.poly1d(np.polyfit(xs, approx['s'], deg=0))
+# polys = np.poly1d(np.polyfit(xs, approx['s'], deg=0))
 plt.plot(xs, np.polyval(polyf, xs), label='f poly')
 plt.plot(xs, f(xs), label='f')
-plt.plot(xs, -F(f, xs), label='F poly')
-plt.plot(xs, -F(polyf, xs), label='F')
+# plt.plot(xs, -F(f, xs), label='F poly')
+# plt.plot(xs, -F(polyf, xs), label='F')
 
-plt.plot(xs, approx['f'], label='f approx') # approximate drift
-plt.plot(xs, approx['s'], label='s approx')
+# plt.plot(xs, approx['f'], label='f approx') # approximate drift
+# plt.plot(xs, approx['s'], label='s approx')
 
 plt.xlabel('x')
 plt.title('approximation and interpolation')
 plt.legend()
-plt.savefig('pics/learned_f(x).pdf', figsize=(7, 5))
+plt.savefig('pics/f_fpoly(x).pdf', figsize=(7, 5))
 
 # %% shooting method
 
@@ -264,16 +267,3 @@ plt.xlabel('x')
 plt.ylabel('velocity')
 plt.title('position vs velocity')
 plt.legend()
-# %% plotting
-fig, axs = plt.subplots(1, 2, sharey=True, figsize=(18, 8))
-axs[0].plot(vv[min_loss], zz[min_loss], color='black', linewidth=2, label='best')
-axs[0].plot(vv[min_loss], zz[min_loss], color='black', linewidth=2, label='best')
-for f in loadf.mean(1):
-    axs[1].plot(ts, f, color='black')
-
-axs[0].set_xlim('')
-
-axs[0].set_xlabel('v')
-axs[0].set_ylabel('x')
-axs[1].set_xlabel('t')
-axs[1].set_ylabel('x')
