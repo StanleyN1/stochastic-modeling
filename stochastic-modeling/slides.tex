@@ -1,0 +1,104 @@
+\documentclass{beamer}
+
+\usepackage[utf8]{inputenc}
+
+\newcommand {\framedgraphic}[2] {
+    \begin{frame}{#1}
+        \begin{center}
+            \includegraphics[width=\textwidth,height=0.8\textheight,keepaspectratio]{#2}
+        \end{center}
+    \end{frame}
+}
+
+\newcommand{\graphic}[1] {
+    \begin{center}
+        \includegraphics[width=\textwidth,height=0.65\textheight,keepaspectratio]{#1}
+    \end{center}
+}
+
+%Information to be included in the title page:
+\title{Most probably transition pathway of biology-modelling SDEs}
+\author{Stanley Nicholson}
+\institute{Illinois Institute of Technology}
+\date{February 2021}
+
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}{Why Stochastics?}
+    \begin{itemize}
+        \item<1-> All physical systems are "noisy"
+        \item<2-> Noise: think of Brownian motion
+        \item<3-> Accounts for sudden changes in system
+        \item<4-> Many biological processes are stochastic: mutation, gene regulation, etc.
+    \end{itemize}
+\end{frame}
+
+\framedgraphic{Brownian Motion}{brownian.pdf}
+
+\begin{frame}
+\frametitle{What's an SDE?}
+The definition of a \textit{stochastic differential equation} given a stochastic process $X_t$, drift function $f(X_t, t)$, and diffusion function $\sigma(X_t, t)$:
+
+\begin{equation}\label{eq:SDE}
+    dX_t = f(X_t, t)dt + \sigma(X_t, t)dB_t
+\end{equation}
+
+Think: $f$ determines direction, $\sigma$ denotes noise intensity
+
+\end{frame}
+
+\framedgraphic{Our Model}{actualfunc.pdf}
+
+\begin{frame}{Simulation}
+    Given $f$ and $\sigma$, we simulate the SDE with the Euler-Maruyama method.
+    \graphic{simulated_labeled.pdf}
+\end{frame}
+
+\begin{frame}{Learn our Model}
+    Given this simulated data, we wish to find learn the underlying drift and diffusion\pause
+
+    \begin{equation}\label{eq:drift}
+        f(x) = \lim_{\Delta t \to 0} \mathbb{E}\left(\frac{X_{\Delta t}-X_0}{\Delta t} \middle| X_0 = x\right)
+    \end{equation}
+
+    \begin{equation}\label{eq:diffusion}
+        \sigma^2(x) = \lim_{\Delta t \to 0} \mathbb{E}\left(\frac{(X_{\Delta t}-X_0)^2}{\Delta t} \middle| X_0 = x\right)
+    \end{equation}
+\end{frame}
+
+\framedgraphic{Simulation Zoom-In}{simulation_zoom.pdf}
+
+\framedgraphic{Learned $f$}{f_and_approx.pdf}
+
+\begin{frame}{Most Probable Pathway}
+
+    Starting at the stable concentration $x_-$, can we jump to $x_+$?\pause
+
+    If so, what is the most probable path that will be taken?\pause
+
+    \begin{equation}\label{eq:zm}
+        \ddot{z} = \frac{\sigma(z)^2}{2}f''(z) + f'(z)f(z).
+    \end{equation}
+
+    with the condition that $z(t_0) = x_-$ and $z(t_f) = x_+$. \pause
+
+    \begin{itemize}
+        \item<1-> Solving analytically is very difficult
+        \item<2-> The shooting method lets us find the "velocity" that minimizes the "loss"
+    \end{itemize}
+
+\end{frame}
+
+\framedgraphic{Learned Probable Pathway}{bio_min_loss.pdf}
+
+\begin{frame}{Future Work}
+    \begin{itemize}
+        \item Fine tune/optimize specific data extraction
+        \item Applying machine learning techniques to pathway distribution
+    \end{itemize}
+\end{frame}
+
+\end{document}
