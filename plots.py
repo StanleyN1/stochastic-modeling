@@ -42,17 +42,55 @@ split = N // n_k
 dx = xs[1] - xs[0]
 
 x_is = {'x+': 4.28343, 'x-': 0.62685, 'xu': 1.48971}
-# %%
+
+# %% plot simulation data
 
 for i, xi in enumerate(xs):
     for run in range(num_runs):
         plt.plot(ts, fss[i][run], color=cmap(xi / max(xs)))
 
+plt.axhline(x_is['x+'], label='x+', c='blue')
+plt.axhline(x_is['x-'], label='x-', c='red')
+plt.axhline(x_is['xu'], label='xu', c='black')
+
 plt.xlabel('t')
 plt.ylabel('x')
+plt.legend()
 plt.title('simulation')
-# plt.savefig('pics/paper/simulated.pdf', figsize=(9, 8))
+plt.savefig('pics/paper/simulated_labeled.pdf')
+# %% sliced / zoomed in
+for i, xi in enumerate(xs):
+    for run in range(num_runs):
+        plt.plot(ts, fss[i][run], color=cmap(xi / max(xs)))
 
+# plt.axhline(x_is['x+'], label='x+', c='blue')
+# plt.axhline(x_is['x-'], label='x-', c='red')
+# plt.axhline(x_is['xu'], label='xu', c='black')
+
+plt.axvline(0, c='gray')
+plt.axvline(5, c='gray')
+
+plt.xlabel('t')
+plt.ylabel('x')
+# plt.legend()
+plt.title('simulation sliced')
+plt.savefig('pics/paper/simulated_labeled_sliced.pdf')
+
+# %% close up of X_{delta t}
+interval = (0, 50)
+for i in range(0, len(xs)):
+    for run in range(num_runs):
+        plt.plot(ts[interval[0]:interval[1]], fss[i][run][interval[0]:interval[1]], color=cmap(xs[i] / max(xs)))
+
+plt.axhline(x_is['x+'], label='x+', c='blue')
+plt.axhline(x_is['x-'], label='x-', c='red')
+plt.axhline(x_is['xu'], label='xu', c='black')
+
+plt.xlabel('t')
+plt.ylabel('x')
+plt.legend()
+plt.title('close-up of simulation')
+# plt.savefig('pics/paper/simulation_zoom.pdf')
 # %%
 def kramers_moyal(xs, fss, intervals=(0, 1)):
     '''implements eq(2) and eq (3) of Dai et al.
@@ -70,7 +108,7 @@ def kramers_moyal(xs, fss, intervals=(0, 1)):
 
         diff = diffs[i][intervals[0]:intervals[1]] # most relevant information is first couple of time steps
         f_approx[i] =  diff.mean() / dt # eq (2) of Dai et al
-        s_approx[i] =  diff.mean() ** 2 / dt # eq (3) of Dai et al
+        s_approx[i] =  np.sqrt(diff.mean() ** 2) / dt # eq (3) of Dai et al
 
     return {'f': f_approx, 's': s_approx}
 # %%
@@ -78,11 +116,19 @@ data = kramers_moyal(xs, fss, (0, 1))
 polyf = np.poly1d(np.polyfit(xs, data['f'], deg=3))
 polys = np.poly1d(np.polyfit(xs, data['s'], deg=0))
 
-print(polyf)
-print(polys)
-zm = (polys ** 2 / 2) * np.polyder(polyf, m=2) + np.polyder(polyf, m=1)*polyf
-print(zm)
+plt.plot(xs, np.polyval(polyf, xs), label='poly fit')
+plt.plot(xs, f(xs), label='f')
+# plt.plot(xs, -F(f, xs), label='F poly')
+# plt.plot(xs, -F(polyf, xs), label='F')
+
+plt.plot(xs, data['f'], label='poly data') # approximate drift
+
+plt.xlabel('x')
+plt.title('approximation and interpolation')
+plt.legend()
+# plt.savefig('pics/paper/polyfit_f.pdf')
 # %%
+zm = (polys ** 2 / 2) * np.polyder(polyf, m=2) + np.polyder(polyf, m=1)*polyf
 loadzneg = np.load('data/bio_zss_xneg.npy')
 loadvneg = np.load('data/bio_vss_xneg.npy')
 target = x_is['x+']
@@ -110,12 +156,12 @@ fig, axs = plt.subplots(1, 2, sharey=True, figsize=(18, 8))
 # axs[0].set_ylabel('x')
 # %%
 approx = kramers_moyal(xs, fss, (0, 1)) # most accurate data
-polyf = np.poly1d(np.polyfit(xs, approx['f'], deg=4))
+polyf = np.poly1d(np.polyfit(xs, approx['f'], deg=3))
 polys = np.poly1d(np.polyfit(xs, approx['s'], deg=0))
 axs[0].plot(np.polyval(polyf, xs), xs, label='f poly')
-axs[0].plot(f(xs), xs, label='f')
-axs[0].plot(-F(f, xs), xs, label='-U poly')
-axs[0].plot(-F(polyf, xs), xs, label='-U')
+# axs[0].plot(f(xs), xs, label='f')
+axs[0].plot(-F(f, xs), xs, label='-U')
+axs[0].plot(-F(polyf, xs), xs, label='-U poly')
 
 axs[0].plot(approx['f'], xs, label='f approx') # approximate drift
 # axs[0].plot(approx['s'], xs, label='s approx')
@@ -127,11 +173,34 @@ axs[0].legend()
 # %%
 for i, xi in enumerate(xs):
     for run in range(num_runs):
-        axs[1].plot(ts, fss[i][run], color=cmap(xi / max(xs)))
+        axs[1].plot(ts, fss[i][run], color='black') # cmap(xi / max(xs))
 
 axs[1].set_xlabel('t')
 axs[1].set_ylabel('x')
 axs[1].set_title('simulated')
+# %%
+
+for i, xi in enumerate(xs):
+    for run in range(2):
+        axs[1].plot(ts, fss[i][run], color='black')
+
+# from x- to x+ shooting method
+zneg_idx = np.where(loadzneg.any(2))
+for i, z in enumerate(loadzneg[zneg_idx]):
+    axs[1].plot(ts, z, color=cmap(loadvneg[zneg_idx][i, 0] / loadvneg[zneg_idx][:,0].max()))
+
+# from x+ to x- shooting method
+# zpos_idx = np.where(loadzpos.any(2))
+# for i, z in enumerate(loadzpos[zpos_idx]):
+#     plt.plot(ts, z, color=cmap(loadvpos[zpos_idx][i, 0] / loadvpos[zpos_idx][:,0].min()))
+
+# min loss transition pathway
+axs[1].plot(ts, zz[min_loss], color='purple', label=f'min action path', linewidth=2.75)
+axs[1].legend()
+axs[1].set_xlabel('t')
+axs[1].set_ylabel('x')
+axs[1].set_title('most probable transition pathway')
+
 # %%
 x_is
 x_is_colors = ['blue', 'red', 'black']
@@ -146,4 +215,5 @@ for xiname, xi in x_is.items():
 axs[1].legend()
 
 fig.tight_layout(pad=1)
-fig.savefig('pics/paper/f_simulated.pdf')
+fig
+fig.savefig('pics/paper/dual_plot.pdf')
