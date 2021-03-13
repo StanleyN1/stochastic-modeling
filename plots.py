@@ -19,7 +19,6 @@ def sigma(x):
     return 0.1
 
 import scipy.integrate as integrate
-
 def F(f, x):
     res = np.zeros_like(x)
     for i, val in enumerate(x):
@@ -57,7 +56,7 @@ plt.xlabel('t')
 plt.ylabel('x')
 plt.legend()
 plt.title('simulation')
-plt.savefig('pics/paper/simulated_labeled.pdf')
+plt.savefig('pics/simulated.png')
 # %% sliced / zoomed in
 for i, xi in enumerate(xs):
     for run in range(num_runs):
