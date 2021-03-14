@@ -56,7 +56,7 @@ plt.xlabel('t')
 plt.ylabel('x')
 plt.legend()
 plt.title('simulation')
-plt.savefig('pics/simulated.png')
+# plt.savefig('pics/simulated.png')
 # %% sliced / zoomed in
 for i, xi in enumerate(xs):
     for run in range(num_runs):
@@ -157,36 +157,38 @@ fig, axs = plt.subplots(1, 2, sharey=True, figsize=(18, 8))
 approx = kramers_moyal(xs, fss, (0, 1)) # most accurate data
 polyf = np.poly1d(np.polyfit(xs, approx['f'], deg=3))
 polys = np.poly1d(np.polyfit(xs, approx['s'], deg=0))
-axs[0].plot(np.polyval(polyf, xs), xs, label='f poly')
+# axs[0].plot(np.polyval(polyf, xs), xs, label='f poly')
 # axs[0].plot(f(xs), xs, label='f')
 axs[0].plot(-F(f, xs), xs, label='-U')
-axs[0].plot(-F(polyf, xs), xs, label='-U poly')
+# axs[0].plot(-F(polyf, xs), xs, label='-U poly')
 
-axs[0].plot(approx['f'], xs, label='f approx') # approximate drift
+# axs[0].plot(approx['f'], xs, label='f approx') # approximate drift
 # axs[0].plot(approx['s'], xs, label='s approx')
-axs[0].set_xlabel('f(x)')
+axs[0].set_xlabel('f')
 axs[0].set_ylabel('x')
-axs[0].set_title('functions')
+axs[0].set_title('potential')
 axs[0].legend()
 
 # %%
 for i, xi in enumerate(xs):
     for run in range(num_runs):
-        axs[1].plot(ts, fss[i][run], color='black') # cmap(xi / max(xs))
+        axs[1].plot(ts, fss[i][run], color=cmap(xi / max(xs))) # cmap(xi / max(xs))
 
 axs[1].set_xlabel('t')
 axs[1].set_ylabel('x')
 axs[1].set_title('simulated')
 # %%
+# loadzneg = np.load('data/bio_zss_xneg.npy')
+# loadvneg = np.load('data/bio_vss_xneg.npy')
 
 for i, xi in enumerate(xs):
     for run in range(2):
-        axs[1].plot(ts, fss[i][run], color='black')
+        axs[1].plot(ts, fss[i][run], color='black', alpha=0.4)
 
 # from x- to x+ shooting method
-zneg_idx = np.where(loadzneg.any(2))
-for i, z in enumerate(loadzneg[zneg_idx]):
-    axs[1].plot(ts, z, color=cmap(loadvneg[zneg_idx][i, 0] / loadvneg[zneg_idx][:,0].max()))
+# zneg_idx = np.where(loadzneg.any(2))
+# for i, z in enumerate(loadzneg[zneg_idx]):
+#     axs[1].plot(ts, z, color=cmap(loadvneg[zneg_idx][i, 0] / loadvneg[zneg_idx][:,0].max()))
 
 # from x+ to x- shooting method
 # zpos_idx = np.where(loadzpos.any(2))
@@ -194,7 +196,7 @@ for i, z in enumerate(loadzneg[zneg_idx]):
 #     plt.plot(ts, z, color=cmap(loadvpos[zpos_idx][i, 0] / loadvpos[zpos_idx][:,0].min()))
 
 # min loss transition pathway
-axs[1].plot(ts, zz[min_loss], color='purple', label=f'min action path', linewidth=2.75)
+# axs[1].plot(ts, zz[min_loss], color='purple', label=f'min action path', linewidth=2.75)
 axs[1].legend()
 axs[1].set_xlabel('t')
 axs[1].set_ylabel('x')
@@ -215,4 +217,4 @@ axs[1].legend()
 
 fig.tight_layout(pad=1)
 fig
-fig.savefig('pics/paper/dual_plot.pdf')
+# fig.savefig('pics/paper/dual_plot.pdf')

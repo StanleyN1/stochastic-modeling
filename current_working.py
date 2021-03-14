@@ -296,8 +296,6 @@ np.save('data/bio_vss_xneg.npy', vss)
 # plt.savefig('pics/simple z')
 # plt.savefig('pics/bio_shooting.png')
 # %%
-import seaborn as sns
-
 zss = loadzneg = np.load('data/bio_zss_xneg.npy')
 # loadzpos = np.load('data/bio_zss_xpos.npy')
 
@@ -371,8 +369,10 @@ plt.legend()
 
 for v, z in zip(vv, zz):
     plt.plot(z, v, color=cmap(v[0]/vv[:,0].max()))
-plt.plot(zz[min_loss], vv[min_loss], color='black', linewidth=2, label='best')
+plt.plot(zz[min_loss], vv[min_loss], color='black', linewidth=2.5, label='best')
 plt.axvline(initial, color='brown', label=f'initial pos: {initial}')
+plt.axvline(target, color='green', label=f'target pos: {target}')
+plt.axvline(x_is['xu'], color='purple', label=f"unstable pos: {x_is['xu']}")
 plt.xlim((0, 6))
 plt.xlabel('x')
 plt.ylabel('velocity')
@@ -390,11 +390,14 @@ for i in tqdm(range(init_sims)): # num for each initial value
         runs.append(run)
 print((len(runs) / 50000) * 100)
 # %%
-
+runs = np.load('data/neg_to_pos_runs.npy')
 
 for run in runs:
-    plt.plot(ts, run, alpha=0.5)
-
+    plt.plot(ts, run, alpha=0.3)
+zneg_idx = np.where(loadzneg.any(2))
+for i, z in enumerate(loadzneg[zneg_idx]):
+    plt.plot(ts, z, color=cmap(loadvneg[zneg_idx][i, 0] / loadvneg[zneg_idx][:,0].max()), alpha=0.5)
+vv[:, 0]
 plt.plot(ts, np.mean(runs, 0), linewidth=3, color='black', label='mean path')
 plt.plot(ts, zz[min_loss], color='purple', label=f'min action path', linewidth=2.75)
 plt.axhline(x_is['x+'], label='x+', c='blue')
@@ -404,7 +407,7 @@ plt.ylabel('x')
 plt.title('transition pathway simulation')
 plt.legend()
 
-# plt.savefig('pics/pathway_good_only.pdf')
+plt.savefig('pics/pathway_velocities.pdf')
 # plt.savefig('pics/pathway_mean.pdf')
 
 # %% 3d pathway distribution plot data
@@ -488,7 +491,7 @@ for i in range(len(runs)):
     ax.plot(xs=ts, ys=runs[i], zs=0, zdir='z', alpha=0.75)
 
 # ax.plot(xs=ts, ys=np.mean(runs, 0), zs=0, zdir='z', linewidth=3, color='black', label='mean path')
-ax.plot(xs=ts, ys=zz[min_loss], zs=0, zdir='z', color='purple', label=f'min action path', linewidth=4)
+ax.plot(xs=ts, ys=zz[min_loss], zs=0, zdir='z', color='black', label=f'min action path', linewidth=4)
 
 yss, probs, tss = [], [], []
 count = 1
@@ -565,9 +568,12 @@ ax.set_zlabel('p(x)')
 ax.view_init(elev=25, azim=100)
 # %%
 import os
-for angle in range(1, 360):
+
+i = 0
+for angle in range(0, 360):
     ax.view_init(elev=25, azim=angle)
-    fig.savefig('pics/movie/movie%d.png' % angle)
+    fig.savefig('pics/movie/movie-%d.png' % i)
+    i += 1
 
 # run this code in the cmd in the directory `pics/movie`
 # ffmpeg -r 30 -i movie%d.png -c:v libx264 -vf fps=25 -pix_fmt yuv420p out.mp4
