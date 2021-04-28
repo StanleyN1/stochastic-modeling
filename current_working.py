@@ -68,7 +68,7 @@ plt.xlabel('t')
 plt.ylabel('x')
 plt.title('simulated data')
 # plt.savefig('pics/simulated.png')
-
+# np.save('data/bio_fss2.npy', fss)
 # %%
 import scipy.integrate as integrate
 
@@ -148,6 +148,11 @@ plt.plot(xs, np.polyval(polys, xs), label=f'$\sigma$: {polys}')
 
 # plt.plot(xs, approx['f'], label='f approx') # approximate drift
 # plt.plot(xs, approx['s'], label='$\sigma$ approx')
+np.save('data/f_poly.npy', polyf)
+np.save('data/f_poly_raw.npy', approx['f'])
+np.save('data/s_poly.npy', polys)
+np.save('data/s_poly_raw.npy', approx['s'])
+
 
 plt.xlabel('x')
 plt.title('approximation and interpolation')

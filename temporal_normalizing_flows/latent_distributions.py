@@ -9,7 +9,7 @@ class gaussian:
 
         return log_pz
 
-    @ staticmethod
+    @staticmethod
     def pz(z, t):
         pz = 1 / np.sqrt(2*np.pi) * torch.exp(-z**2/2)
 

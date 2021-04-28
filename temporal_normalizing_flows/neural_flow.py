@@ -68,6 +68,30 @@ class neural_flow(nn.Module):
         # print(normalized_particle_x.shape)
         return interpolated_data
 
+    def train_dpx(self, dataset, iterations):
+        # trains normalizing flow
+        optimizer = torch.optim.Adam(self.parameters())
+
+        for it in tqdm(np.arange(iterations)):
+            log_px_grid = self.forward(dataset)[0]
+            # print(log_px_grid.shape)
+            # print(dataset.grid_data.shape)
+            log_px_samples = self.sample_grid(log_px_grid, dataset)
+
+            px, _, _, _ = self.sample(dataset)
+
+            dpx = np.exp(np.diff(log_px_samples.detach().numpy(), axis=0))
+            log_px_adjusted = torch.tensor(dpx) * log_px_samples[:-1]
+            loss = -torch.mean(log_px_adjusted)
+
+            # loss = -torch.mean(log_px_samples)
+            loss.backward()
+            optimizer.step()
+            optimizer.zero_grad()
+
+            if it % (iterations // 10) == 0:
+                print(it, loss.item())
+
     def train(self, dataset, iterations):
         # trains normalizing flow
         optimizer = torch.optim.Adam(self.parameters())
@@ -77,7 +101,10 @@ class neural_flow(nn.Module):
             # print(log_px_grid.shape)
             # print(dataset.grid_data.shape)
             log_px_samples = self.sample_grid(log_px_grid, dataset)
+
             loss = -torch.mean(log_px_samples)
+
+            # loss = -torch.mean(log_px_samples)
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
