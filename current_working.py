@@ -68,7 +68,7 @@ plt.xlabel('t')
 plt.ylabel('x')
 plt.title('simulated data')
 # plt.savefig('pics/simulated.png')
-
+# np.save('data/bio_fss2.npy', fss)
 # %%
 import scipy.integrate as integrate
 
@@ -148,6 +148,11 @@ plt.plot(xs, np.polyval(polys, xs), label=f'$\sigma$: {polys}')
 
 # plt.plot(xs, approx['f'], label='f approx') # approximate drift
 # plt.plot(xs, approx['s'], label='$\sigma$ approx')
+np.save('data/f_poly.npy', polyf)
+np.save('data/f_poly_raw.npy', approx['f'])
+np.save('data/s_poly.npy', polys)
+np.save('data/s_poly_raw.npy', approx['s'])
+
 
 plt.xlabel('x')
 plt.title('approximation and interpolation')
@@ -388,7 +393,12 @@ for i in tqdm(range(init_sims)): # num for each initial value
     if run[-10:].mean() > 2:
         plt.plot(ts, run, alpha=0.5)
         runs.append(run)
-print((len(runs) / 50000) * 100)
+print((len(runs) / init_sims) * 100)
+# %%
+runs = np.array(runs)
+np.save(runs, 'data/run.npy')
+# %%
+runs = np.load('data/neg_to_pos_runs.npy')
 # %%
 runs = np.load('data/neg_to_pos_runs.npy')
 
@@ -414,21 +424,11 @@ plt.savefig('pics/pathway_velocities.pdf')
 from sklearn.neighbors import KernelDensity
 import pandas as pd
 from matplotlib import cm
-# %matplotlib inline
-# %%
-# First import everthing you need
 from matplotlib import animation
 from mpl_toolkits.mplot3d import Axes3D
 
-# Create an init function and the animate functions.
-# Both are explained in the tutorial. Since we are changing
-# the the elevation and azimuth and no objects are really
-# changed on the plot we don't have to return anything from
-# the init and animate function. (return value is explained
-# in the tutorial.
 ys = xs
 position = np.array(runs)
-# runs = pd.DataFrame(runs, index=time)
 
 fig = plt.figure()
 ax = fig.gca(projection='3d')
@@ -488,28 +488,35 @@ ax = fig.gca(projection='3d')
 fig.set_size_inches(12, 8)
 
 for i in range(len(runs)):
-    ax.plot(xs=ts, ys=runs[i], zs=0, zdir='z', alpha=0.75)
+    ax.plot(xs=ts, ys=runs[i], zs=0, zdir='z', alpha=0.3)
 
 # ax.plot(xs=ts, ys=np.mean(runs, 0), zs=0, zdir='z', linewidth=3, color='black', label='mean path')
 ax.plot(xs=ts, ys=zz[min_loss], zs=0, zdir='z', color='black', label=f'min action path', linewidth=4)
 
-yss, probs, tss = [], [], []
+yss, probs, tss, expectations, map_expectations = [], [], [], [], []
 count = 1
 factor = (len(ts) // count + 1)
-map_min2 = []
+map_probable = []
 for i, t in enumerate(ts[::count]):
     slice = position[:, list(ts).index(t)][:, None]
 
     kde = KernelDensity(kernel='gaussian')
     kde.fit(slice)
-    map_min2.append(np.exp(kde.score_samples([[zz[min_loss][i]]])))
+    map_probable.append(np.exp(kde.score_samples([[zz[min_loss][i]]])))
     prob = np.exp(kde.score_samples(ys[:, None]))
 
-    ax.plot(ys=ys, zs=prob, xs=[t]*(len(ys)), c=cmap(i / factor))
+    expectations.append(max(prob))
+    # map_expectations.append(np.exp(kde.score_samples([[expectations[i]]])))
+    ax.plot(ys=ys, zs=prob, xs=[t]*(len(ys)), c=cmap(i / factor)) # i / factor
 
-map_min2 = np.array(map_min2).reshape(-1)
 
+map_probable = np.array(map_probable).reshape(-1)
+map_expectations = np.array(map_expectations).reshape(-1)
+
+# expectations = np.array(expectations) / max(expectations)
 ax.plot(xs=ts, ys=zz[min_loss], zs=map_min2, color='black', label=f'min action path', linewidth=6)
+ax.plot(xs=ts, ys=ys, zs=expectations, color='gray', label=f'expected value', linewidth=6)
+# ax.plot(xs=ts, ys=expectations, zs=0, zdir='z', color='gray', label=f'expected value', linewidth=4)
 
 plt.title('3d pathway distribution')
 ax.set_xlabel('t')
@@ -519,7 +526,7 @@ ax.set_zlabel('p(x)')
 # %% alt 3d graph
 from matplotlib import animation
 from mpl_toolkits.mplot3d import Axes3D
-
+import scipy.stats as stats
 # Create an init function and the animate functions.
 # Both are explained in the tutorial. Since we are changing
 # the the elevation and azimuth and no objects are really
@@ -554,7 +561,7 @@ for i in range(start, len(ts)):
     map_min.append(stats.gaussian_kde(position[:, i]).pdf(zz[min_loss][i]))
 
 ZS = np.array(ZS).transpose()
-map_min = np.array(map_min)
+map_min = np.array(map_min).reshape(-1)
 
 ax.plot_surface(TS[:, start:], YS[:, start:], ZS, cmap='viridis')
 ts.size, ys.size, map_min.size
