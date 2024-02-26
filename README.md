@@ -1,6 +1,6 @@
 # stochastic-modeling
 
-Abstract: Inferring dynamic parameters of stochastic differential equations from data is a fundamental problem in data science. We compare estimated parameters obtained from temporal normalizing flows and analytic formulas such as from the Kramers Moyal Formula and the associated Fokker-Planck solution.
+Abstract: Inferring dynamic parameters of stochastic differential equations from data is a fundamental problem in data science. We compare estimated parameters obtained from **temporal normalizing flows** and analytic formulas such as from the **Kramers Moyal Formula** and the associated **Fokker-Planck solution**.
 
 Implementing Euler's method to Stochastic Differential Equations. Applying derivations from Kramers Moyal Formula as presented by Dai et al.
 
